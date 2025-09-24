@@ -267,7 +267,7 @@ private fun findSharedResponseType(
     graphQLTypeName: String
 ): ClassName? {
     return context.responseClassToTypeSpecs.keys.find { className ->
-        className.simpleName == graphQLTypeName && 
+        className.simpleName == graphQLTypeName &&
         className.packageName.endsWith(".responses")
     }
 }
