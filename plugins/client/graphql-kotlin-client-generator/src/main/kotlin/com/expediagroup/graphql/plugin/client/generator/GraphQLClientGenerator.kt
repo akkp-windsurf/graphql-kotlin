@@ -216,6 +216,7 @@ class GraphQLClientGenerator(
             // shared types
             sharedTypes.putAll(context.enumClassToTypeSpecs.mapValues { listOf(it.value) })
             sharedTypes.putAll(context.inputClassToTypeSpecs.mapValues { listOf(it.value) })
+            sharedTypes.putAll(context.responseClassToTypeSpecs.mapValues { listOf(it.value) })
             context.scalarClassToConverterTypeSpecs
                 .values
                 .forEach {

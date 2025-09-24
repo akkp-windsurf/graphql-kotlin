@@ -258,3 +258,16 @@ private fun calculateSelectedFields(
     }
     return result
 }
+
+/**
+ * Find an existing shared response type for the given GraphQL type name
+ */
+private fun findSharedResponseType(
+    context: GraphQLClientGeneratorContext,
+    graphQLTypeName: String
+): ClassName? {
+    return context.responseClassToTypeSpecs.keys.find { className ->
+        className.simpleName == graphQLTypeName &&
+        className.packageName.endsWith(".responses")
+    }
+}
