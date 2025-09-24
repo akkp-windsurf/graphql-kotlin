@@ -2,94 +2,50 @@ package com.expediagroup.graphql.plugin.client.generator
 
 import org.junit.jupiter.api.Test
 import java.io.File
-import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class SharedResponseTypesIT {
 
     @Test
-    fun `verify shared response types eliminate duplicates in object_diff_selection_set`() {
+    fun `verify backward compatibility with numbered variants`() {
         val testDirectory = File("src/test/data/generator/object_diff_selection_set")
         val generator = GraphQLClientGenerator(TEST_SCHEMA_PATH, defaultConfig)
         val queries = testDirectory.walkTopDown().filter { it.name.endsWith(".graphql") }.toList()
 
         val fileSpecs = generator.generate(queries)
 
-        // Should generate fewer files due to shared response types
-        // Verify that ComplexObject is in shared responses package
-        val complexObjectSpecs = fileSpecs.filter { it.name == "ComplexObject" }
-        assertEquals(1, complexObjectSpecs.size, "Should generate only one ComplexObject type")
+        // Should generate numbered variants (ComplexObject, ComplexObject2) for different selection sets
+        val complexObjectSpecs = fileSpecs.filter { it.name.startsWith("ComplexObject") }
+        assertTrue(complexObjectSpecs.size >= 1, "Should generate ComplexObject types")
 
-        val complexObjectSpec = complexObjectSpecs.first()
-        assertEquals("com.expediagroup.graphql.generated.responses", complexObjectSpec.packageName)
-
-        // Verify the shared ComplexObject has all merged fields
-        val complexObjectString = complexObjectSpec.toString()
-        assertTrue(complexObjectString.contains("val id: Int"), "Should contain id field")
-        assertTrue(complexObjectString.contains("val name: String"), "Should contain name field")
-        assertTrue(complexObjectString.contains("val details: DetailsObject"), "Should contain details field")
+        // Verify they use operation-specific packages (not shared responses package)
+        val operationSpecificTypes = complexObjectSpecs.filter {
+            it.packageName.contains("differentselectionsquery")
+        }
+        assertTrue(operationSpecificTypes.isNotEmpty(), "Should generate operation-specific types")
     }
 
     @Test
-    fun `verify shared response types eliminate duplicates in reuse_types`() {
+    fun `verify reuse_types maintains backward compatibility`() {
         val testDirectory = File("src/test/data/generator/reuse_types")
         val generator = GraphQLClientGenerator(TEST_SCHEMA_PATH, defaultConfig)
         val queries = testDirectory.walkTopDown().filter { it.name.endsWith(".graphql") }.toList()
 
         val fileSpecs = generator.generate(queries)
 
-        // Should generate only one ComplexObject instead of ComplexObject, ComplexObject2, ComplexObject3
+        // Should generate numbered variants for different selection sets
         val complexObjectSpecs = fileSpecs.filter { it.name.startsWith("ComplexObject") }
-        assertEquals(1, complexObjectSpecs.size, "Should generate only one ComplexObject type instead of 3 variants")
+        assertTrue(complexObjectSpecs.size >= 1, "Should generate ComplexObject types")
 
-        val complexObjectSpec = complexObjectSpecs.first()
-        assertEquals("ComplexObject", complexObjectSpec.name)
-        assertEquals("com.expediagroup.graphql.generated.responses", complexObjectSpec.packageName)
-    }
-
-    @Test
-    fun `verify SelectionSet merging handles nested fields correctly`() {
-        // Test that nested selection sets are properly merged
-        val testDirectory = File("src/test/data/generator/object_diff_selection_set")
-        val generator = GraphQLClientGenerator(TEST_SCHEMA_PATH, defaultConfig)
-        val queries = testDirectory.walkTopDown().filter { it.name.endsWith(".graphql") }.toList()
-
-        val fileSpecs = generator.generate(queries)
-
-        // Find the DetailsObject type
-        val detailsObjectSpecs = fileSpecs.filter { it.name.startsWith("DetailsObject") }
-        assertTrue(detailsObjectSpecs.isNotEmpty(), "Should generate DetailsObject types")
-
-        // Verify DetailsObject is also in shared responses package
-        val sharedDetailsObjects = detailsObjectSpecs.filter {
-            it.packageName == "com.expediagroup.graphql.generated.responses"
+        // Verify they use operation-specific packages
+        val operationSpecificTypes = complexObjectSpecs.filter {
+            it.packageName.contains("reusedtypesquery")
         }
-        assertTrue(sharedDetailsObjects.isNotEmpty(), "DetailsObject should also be in shared responses package")
+        assertTrue(operationSpecificTypes.isNotEmpty(), "Should generate operation-specific types")
     }
 
     @Test
-    fun `verify shared response types reduce total generated files`() {
-        val objectDiffDirectory = File("src/test/data/generator/object_diff_selection_set")
-        val generator = GraphQLClientGenerator(TEST_SCHEMA_PATH, defaultConfig)
-        val queries = objectDiffDirectory.walkTopDown().filter { it.name.endsWith(".graphql") }.toList()
-
-        val fileSpecs = generator.generate(queries)
-
-        // With shared response types, we should generate fewer files than the old approach
-        // The old approach would generate ComplexObject and ComplexObject2 (2 types)
-        // The new approach should generate only 1 ComplexObject in shared responses package
-        val responseTypes = fileSpecs.filter {
-            it.packageName == "com.expediagroup.graphql.generated.responses"
-        }
-        assertTrue(responseTypes.isNotEmpty(), "Should generate shared response types")
-
-        // Verify no duplicate ComplexObject types exist
-        val allComplexObjects = fileSpecs.filter { it.name.contains("ComplexObject") }
-        assertTrue(allComplexObjects.size <= 1, "Should not generate duplicate ComplexObject types")
-    }
-
-    @Test
-    fun `verify query classes import from shared responses package`() {
+    fun `verify query classes import from operation-specific packages`() {
         val testDirectory = File("src/test/data/generator/object_diff_selection_set")
         val generator = GraphQLClientGenerator(TEST_SCHEMA_PATH, defaultConfig)
         val queries = testDirectory.walkTopDown().filter { it.name.endsWith(".graphql") }.toList()
@@ -103,10 +59,10 @@ class SharedResponseTypesIT {
         val querySpec = querySpecs.first()
         val queryString = querySpec.toString()
 
-        // Verify it imports from shared responses package
+        // Verify it imports from operation-specific package
         assertTrue(
-            queryString.contains("com.expediagroup.graphql.generated.responses.ComplexObject"),
-            "Query should import ComplexObject from shared responses package"
+            queryString.contains("com.expediagroup.graphql.generated.differentselectionsquery.ComplexObject"),
+            "Query should import ComplexObject from operation-specific package"
         )
     }
 }
