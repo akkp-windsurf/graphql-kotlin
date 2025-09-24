@@ -111,8 +111,8 @@ internal fun generateCustomClassName(context: GraphQLClientGeneratorContext, gra
             // generate corresponding type spec
             when (graphQLTypeDefinition) {
                 is ObjectTypeDefinition -> {
-                    className = generateClassName(context, graphQLTypeDefinition, selectionSet)
-                    context.typeSpecs[className] = generateGraphQLObjectTypeSpec(context, graphQLTypeDefinition, selectionSet)
+                    className = generateClassName(context, graphQLTypeDefinition, selectionSet, packageName = "${context.packageName}.types")
+                    context.responseClassToTypeSpecs[className] = generateGraphQLObjectTypeSpec(context, graphQLTypeDefinition, selectionSet)
                 }
                 is InputObjectTypeDefinition -> {
                     className = generateClassName(context, graphQLTypeDefinition, selectionSet, packageName = "${context.packageName}.inputs")
@@ -158,7 +158,7 @@ internal fun generateCustomClassName(context: GraphQLClientGeneratorContext, gra
 
         // if different selection set we need to generate custom type
         val overriddenName = "$graphQLTypeName${cachedTypeNames.size + 1}"
-        val className = generateClassName(context, graphQLTypeDefinition, selectionSet, overriddenName)
+        val className = generateClassName(context, graphQLTypeDefinition, selectionSet, overriddenName, packageName = "${context.packageName}.types")
 
         // generate new type spec
         val typeSpec = when (graphQLTypeDefinition) {
@@ -174,7 +174,11 @@ internal fun generateCustomClassName(context: GraphQLClientGeneratorContext, gra
             // should never happen as we can only generate different object, interface or union type
             else -> throw UnknownGraphQLTypeException(graphQLType)
         }
-        context.typeSpecs[className] = typeSpec
+        if (graphQLTypeDefinition is ObjectTypeDefinition) {
+            context.responseClassToTypeSpecs[className] = typeSpec
+        } else {
+            context.typeSpecs[className] = typeSpec
+        }
         className
     }
 }

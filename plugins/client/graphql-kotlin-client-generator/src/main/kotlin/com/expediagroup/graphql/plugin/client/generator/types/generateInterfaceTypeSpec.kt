@@ -190,10 +190,10 @@ private fun updateImplementationTypeSpecWithSuperInformation(
     commonProperties: List<PropertySpec>
 ) {
     val commonPropertyNames = commonProperties.map { it.name }
-    val implementationTypeSpec = context.typeSpecs[implementationClassName]!!
+    val implementationTypeSpec = context.responseClassToTypeSpecs[implementationClassName] ?: context.typeSpecs[implementationClassName]!!
 
     val builder = implementationTypeSpec.toBuilder()
-    val superClassName = ClassName("${context.packageName}.${context.operationName.lowercase()}", interfaceName)
+    val superClassName = ClassName("${context.packageName}.types", interfaceName)
     if (context.serializer == GraphQLSerializer.KOTLINX) {
         builder.addAnnotation(
             AnnotationSpec.builder(SerialName::class)
@@ -225,13 +225,17 @@ private fun updateImplementationTypeSpecWithSuperInformation(
 
     val updatedType = builder.build()
     context.polymorphicTypes[superClassName]?.add(implementationClassName)
-    context.typeSpecs[implementationClassName] = updatedType
+    if (context.responseClassToTypeSpecs.containsKey(implementationClassName)) {
+        context.responseClassToTypeSpecs[implementationClassName] = updatedType
+    } else {
+        context.typeSpecs[implementationClassName] = updatedType
+    }
 }
 
 private fun generateFallbackImplementation(context: GraphQLClientGeneratorContext, interfaceName: String, commonProperties: List<PropertySpec>): ClassName {
     val fallbackTypeName = "Default${interfaceName}Implementation"
-    val superClassName = ClassName("${context.packageName}.${context.operationName.lowercase()}", interfaceName)
-    val fallbackClassName = ClassName("${context.packageName}.${context.operationName.lowercase()}", fallbackTypeName)
+    val superClassName = ClassName("${context.packageName}.types", interfaceName)
+    val fallbackClassName = ClassName("${context.packageName}.types", fallbackTypeName)
     val fallbackType = TypeSpec.classBuilder(fallbackTypeName)
         .addAnnotation(Generated::class)
         .addKdoc("Fallback $interfaceName implementation that will be used when unknown/unhandled type is encountered.")
@@ -277,6 +281,6 @@ private fun generateFallbackImplementation(context: GraphQLClientGeneratorContex
         )
         .build()
     context.polymorphicTypes[superClassName]?.add(fallbackClassName)
-    context.typeSpecs[fallbackClassName] = fallbackType
+    context.responseClassToTypeSpecs[fallbackClassName] = fallbackType
     return fallbackClassName
 }

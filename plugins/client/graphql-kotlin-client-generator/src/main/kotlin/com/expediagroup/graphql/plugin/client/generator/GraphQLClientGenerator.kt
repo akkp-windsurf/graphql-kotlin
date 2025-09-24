@@ -130,7 +130,8 @@ class GraphQLClientGenerator(
 
             val rootType = findRootType(operationDefinition)
             val graphQLResponseTypeSpec = generateGraphQLObjectTypeSpec(context, rootType, operationDefinition.selectionSet, "Result")
-            val kotlinResultTypeName = ClassName(context.packageName, "${context.operationName}.${graphQLResponseTypeSpec.name}")
+            val kotlinResultTypeName = ClassName("${context.packageName}.types", graphQLResponseTypeSpec.name!!)
+            context.responseClassToTypeSpecs[kotlinResultTypeName] = graphQLResponseTypeSpec
 
             val operationTypeSpec = TypeSpec.classBuilder(capitalizedOperationName)
                 .addAnnotation(Generated::class)
@@ -182,7 +183,6 @@ class GraphQLClientGenerator(
                     .addStatement("return %T::class", kotlinResultTypeName)
                     .build()
             )
-            operationTypeSpec.addType(graphQLResponseTypeSpec)
 
             val polymorphicTypes = mutableListOf<ClassName>()
             // prevent colocating duplicated type specs in the same packageName
@@ -216,6 +216,7 @@ class GraphQLClientGenerator(
             // shared types
             sharedTypes.putAll(context.enumClassToTypeSpecs.mapValues { listOf(it.value) })
             sharedTypes.putAll(context.inputClassToTypeSpecs.mapValues { listOf(it.value) })
+            sharedTypes.putAll(context.responseClassToTypeSpecs.mapValues { listOf(it.value) })
             context.scalarClassToConverterTypeSpecs
                 .values
                 .forEach {
