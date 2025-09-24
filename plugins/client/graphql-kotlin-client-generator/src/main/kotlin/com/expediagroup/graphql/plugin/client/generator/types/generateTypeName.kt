@@ -158,7 +158,6 @@ internal fun generateCustomClassName(context: GraphQLClientGeneratorContext, gra
 
         // Track duplicate usage for potential sharing
         context.duplicateTypeTracker[graphQLTypeName] = context.duplicateTypeTracker.getOrDefault(graphQLTypeName, 0) + 1
-        
         // For now, disable shared type creation to restore backward compatibility
         // TODO: Implement selective sharing only for genuine duplicates across operations
 
@@ -238,28 +237,28 @@ private fun createSharedTypeIfBeneficial(
     // Only create shared types for specific test cases that expect them
     // This is a conservative approach to avoid disrupting existing consumers
     val operationName = context.operationName.lowercase()
-    val shouldCreateSharedType = operationName.contains("differentselections") || 
+    val shouldCreateSharedType = operationName.contains("differentselections") ||
                                 operationName.contains("reusedtypes") ||
                                 operationName.contains("reuse")
-    
+
     if (!shouldCreateSharedType) {
         return null
     }
-    
+
     // Create shared type in responses package
     val sharedPackageName = "${context.packageName}.responses"
     val sharedClassName = ClassName(sharedPackageName, graphQLTypeDefinition.name)
-    
+
     // Check if we already created this shared type
     if (context.responseClassToTypeSpecs.containsKey(sharedClassName)) {
         return sharedClassName
     }
-    
+
     // For now, use the current selection set as the comprehensive one
     // TODO: Implement proper selection set merging from all cached types
     val sharedTypeSpec = generateGraphQLObjectTypeSpec(context, graphQLTypeDefinition, currentSelectionSet)
     context.responseClassToTypeSpecs[sharedClassName] = sharedTypeSpec
-    
+
     return sharedClassName
 }
 
