@@ -21,6 +21,7 @@ import com.squareup.kotlinpoet.TypeAliasSpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import graphql.language.Document
+import graphql.language.SelectionSet
 import graphql.schema.idl.TypeDefinitionRegistry
 
 /**
@@ -45,9 +46,13 @@ data class GraphQLClientGeneratorContext(
     // shared type caches
     val enumClassToTypeSpecs: MutableMap<ClassName, TypeSpec> = mutableMapOf()
     val inputClassToTypeSpecs: MutableMap<ClassName, TypeSpec> = mutableMapOf()
+    val responseClassToTypeSpecs: MutableMap<ClassName, TypeSpec> = mutableMapOf()
     val scalarClassToConverterTypeSpecs: MutableMap<ClassName, ScalarConverterInfo> = mutableMapOf()
     val typeAliases: MutableMap<String, TypeAliasSpec> = mutableMapOf()
     internal fun isTypeAlias(typeName: String) = typeAliases.containsKey(typeName)
+
+    // Track merged selection sets for shared response types
+    val mergedSelectionSets: MutableMap<String, SelectionSet> = mutableMapOf()
 
     // class name and type selection caches
     val classNameCache: MutableMap<String, MutableList<ClassName>> = mutableMapOf()

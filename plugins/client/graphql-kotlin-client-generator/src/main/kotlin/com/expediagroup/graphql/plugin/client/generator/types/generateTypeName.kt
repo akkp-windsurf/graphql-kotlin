@@ -111,8 +111,10 @@ internal fun generateCustomClassName(context: GraphQLClientGeneratorContext, gra
             // generate corresponding type spec
             when (graphQLTypeDefinition) {
                 is ObjectTypeDefinition -> {
-                    className = generateClassName(context, graphQLTypeDefinition, selectionSet)
-                    context.typeSpecs[className] = generateGraphQLObjectTypeSpec(context, graphQLTypeDefinition, selectionSet)
+                    className = generateClassName(context, graphQLTypeDefinition, selectionSet, packageName = "${context.packageName}.responses")
+                    // Store the selection set for potential merging
+                    context.mergedSelectionSets[graphQLTypeDefinition.name] = selectionSet!!
+                    context.responseClassToTypeSpecs[className] = generateGraphQLObjectTypeSpec(context, graphQLTypeDefinition, selectionSet)
                 }
                 is InputObjectTypeDefinition -> {
                     className = generateClassName(context, graphQLTypeDefinition, selectionSet, packageName = "${context.packageName}.inputs")
@@ -149,6 +151,22 @@ internal fun generateCustomClassName(context: GraphQLClientGeneratorContext, gra
     } else if (selectionSet == null) {
         cachedTypeNames.first()
     } else {
+        // For ObjectTypeDefinition, merge selection sets to create comprehensive shared types
+        if (graphQLTypeDefinition is ObjectTypeDefinition) {
+            val existingClassName = cachedTypeNames.first()
+            val existingSelectionSet = context.mergedSelectionSets[graphQLTypeDefinition.name]
+
+            if (existingSelectionSet != null) {
+                // Merge the current selection set with the existing one
+                val mergedSelectionSet = mergeSelectionSets(existingSelectionSet, selectionSet)
+                context.mergedSelectionSets[graphQLTypeDefinition.name] = mergedSelectionSet
+
+                // Regenerate the type spec with the merged selection set
+                context.responseClassToTypeSpecs[existingClassName] = generateGraphQLObjectTypeSpec(context, graphQLTypeDefinition, mergedSelectionSet)
+            }
+
+            return existingClassName
+        }
         // verify we got same selection set for interface and/or objects (unions shouldn't have any fields)
         for (cachedType in cachedTypeNames) {
             if (isCachedTypeApplicable(context, cachedType.simpleNameWithoutWrapper(), graphQLTypeDefinition, selectionSet)) {
@@ -257,4 +275,48 @@ private fun calculateSelectedFields(
         }
     }
     return result
+}
+
+/**
+ * Merge two SelectionSets into a comprehensive SelectionSet that includes all fields from both.
+ * This handles aliases correctly by preserving the actual field names in the merged result.
+ */
+private fun mergeSelectionSets(existing: SelectionSet, new: SelectionSet): SelectionSet {
+    // Create a map to track fields by their actual name (not alias)
+    val fieldMap = mutableMapOf<String, Field>()
+
+    // Process existing selection set
+    existing.selections.filterIsInstance<Field>().forEach { field ->
+        val actualFieldName = field.name // Use actual field name, not alias
+        fieldMap[actualFieldName] = field
+    }
+
+    // Process new selection set, merging with existing fields
+    new.selections.filterIsInstance<Field>().forEach { field ->
+        val actualFieldName = field.name // Use actual field name, not alias
+        val existingField = fieldMap[actualFieldName]
+
+        if (existingField != null) {
+            // If both fields have selection sets, merge them recursively
+            if (existingField.selectionSet != null && field.selectionSet != null) {
+                val mergedNestedSelectionSet = mergeSelectionSets(existingField.selectionSet, field.selectionSet)
+                fieldMap[actualFieldName] = existingField.transform { builder ->
+                    builder.selectionSet(mergedNestedSelectionSet)
+                }
+            }
+            // If only the new field has a selection set, use it
+            else if (field.selectionSet != null) {
+                fieldMap[actualFieldName] = field
+            }
+            // Otherwise keep the existing field (it might have a selection set that the new one doesn't)
+        } else {
+            // New field, add it to the map
+            fieldMap[actualFieldName] = field
+        }
+    }
+
+    // Create the merged selection set
+    return SelectionSet.newSelectionSet()
+        .selections(fieldMap.values.toList())
+        .build()
 }
