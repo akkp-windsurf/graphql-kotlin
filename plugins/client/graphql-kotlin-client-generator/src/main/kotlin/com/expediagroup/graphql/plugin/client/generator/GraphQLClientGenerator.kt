@@ -53,6 +53,7 @@ class GraphQLClientGenerator(
     private val documentParser: Parser = Parser()
     private val typeAliases: MutableMap<String, TypeAliasSpec> = mutableMapOf()
     private val sharedTypes: MutableMap<ClassName, List<TypeSpec>> = mutableMapOf()
+    private val responseTypeSignatures: MutableMap<String, MutableList<Pair<ClassName, TypeSpec>>> = mutableMapOf()
     private var generateOptionalSerializer: Boolean = false
     private val graphQLSchema: TypeDefinitionRegistry
     private val parserOptions: ParserOptions = ParserOptions.newParserOptions().also { this.config.parserOptions(it) }.build()
@@ -70,6 +71,8 @@ class GraphQLClientGenerator(
             result.addAll(generate(query))
         }
 
+        // Process collected response types for sharing
+        processSharedResponseTypes()
         // common shared types
         for ((className, typeSpecs) in sharedTypes) {
             val fileSpec = FileSpec.builder(className.packageName, className.simpleName)
@@ -216,6 +219,9 @@ class GraphQLClientGenerator(
             // shared types
             sharedTypes.putAll(context.enumClassToTypeSpecs.mapValues { listOf(it.value) })
             sharedTypes.putAll(context.inputClassToTypeSpecs.mapValues { listOf(it.value) })
+
+            // Collect response types for potential sharing
+            collectResponseTypesForSharing(context)
             context.scalarClassToConverterTypeSpecs
                 .values
                 .forEach {
@@ -238,6 +244,44 @@ class GraphQLClientGenerator(
             }
         }
         return fileSpecs
+    }
+
+    private fun collectResponseTypesForSharing(context: GraphQLClientGeneratorContext) {
+        // Collect all response types with their structural signatures
+        context.typeSpecs.forEach { (className, typeSpec) ->
+            if (className.packageName.contains(context.operationName.lowercase()) &&
+                !className.packageName.contains(".inputs") &&
+                !className.packageName.contains(".enums")
+            ) {
+
+                val signature = generateResponseTypeStructuralSignature(typeSpec)
+                responseTypeSignatures.getOrPut(signature) { mutableListOf() }.add(className to typeSpec)
+            }
+        }
+    }
+
+    private fun generateResponseTypeStructuralSignature(typeSpec: TypeSpec): String {
+        // Generate signature based on property names and types
+        val properties = typeSpec.propertySpecs.map { prop ->
+            "${prop.name}:${prop.type}"
+        }.sorted()
+        return "${typeSpec.name}:${properties.joinToString(",")}"
+    }
+
+    private fun processSharedResponseTypes() {
+        // Find response types that appear multiple times with the same signature
+        responseTypeSignatures.forEach { (signature, typeList) ->
+            if (typeList.size > 1) {
+                // This response type is shared across multiple operations
+                val (firstClassName, firstTypeSpec) = typeList.first()
+                val sharedClassName = ClassName("${config.packageName}.responses", firstTypeSpec.name!!)
+
+                // Create a new TypeSpec for the shared package
+                val sharedTypeSpec = firstTypeSpec.toBuilder()
+                    .build()
+                sharedTypes[sharedClassName] = listOf(sharedTypeSpec)
+            }
+        }
     }
 
     private fun findRootType(operationDefinition: OperationDefinition): ObjectTypeDefinition {
