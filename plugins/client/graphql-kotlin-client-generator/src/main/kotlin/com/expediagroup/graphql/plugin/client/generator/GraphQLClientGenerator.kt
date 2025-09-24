@@ -66,9 +66,15 @@ class GraphQLClientGenerator(
      */
     fun generate(queries: List<File>): List<FileSpec> {
         val result = mutableListOf<FileSpec>()
+        val allContexts = mutableListOf<GraphQLClientGeneratorContext>()
         for (query in queries) {
-            result.addAll(generate(query))
+            val (fileSpecs, contexts) = generateWithContext(query)
+            result.addAll(fileSpecs)
+            allContexts.addAll(contexts)
         }
+
+        // detect shared response types across operations
+        detectSharedResponseTypes(allContexts)
 
         // common shared types
         for ((className, typeSpecs) in sharedTypes) {
@@ -94,6 +100,14 @@ class GraphQLClientGenerator(
      * Generate GraphQL client wrapper class and data classes that match the specified query.
      */
     internal fun generate(queryFile: File): List<FileSpec> {
+        val (fileSpecs, _) = generateWithContext(queryFile)
+        return fileSpecs
+    }
+
+    /**
+     * Generate GraphQL client wrapper class and data classes that match the specified query, returning contexts.
+     */
+    private fun generateWithContext(queryFile: File): Pair<List<FileSpec>, List<GraphQLClientGeneratorContext>> {
         val queryConst = queryFile.readText().trim()
         val queryDocument = documentParser.parseDocument(
             ParserEnvironment.newParserEnvironment()
@@ -108,6 +122,7 @@ class GraphQLClientGenerator(
         }
 
         val fileSpecs = mutableListOf<FileSpec>()
+        val contexts = mutableListOf<GraphQLClientGeneratorContext>()
         val operationFileSpec = FileSpec.builder(packageName = config.packageName, fileName = queryFile.nameWithoutExtension.capitalizeFirstChar())
         operationDefinitions.forEach { operationDefinition ->
             val capitalizedOperationName = operationDefinition.name?.capitalizeFirstChar() ?: queryFile.nameWithoutExtension.capitalizeFirstChar()
@@ -216,6 +231,7 @@ class GraphQLClientGenerator(
             // shared types
             sharedTypes.putAll(context.enumClassToTypeSpecs.mapValues { listOf(it.value) })
             sharedTypes.putAll(context.inputClassToTypeSpecs.mapValues { listOf(it.value) })
+            sharedTypes.putAll(context.responseClassToTypeSpecs.mapValues { listOf(it.value) })
             context.scalarClassToConverterTypeSpecs
                 .values
                 .forEach {
@@ -236,8 +252,36 @@ class GraphQLClientGenerator(
 //                customScalarSerializers.putAll(context.scalarClassToConverterTypeSpecs)
                 sharedTypes.putAll(context.optionalSerializers.mapValues { listOf(it.value) })
             }
+
+            contexts.add(context)
         }
-        return fileSpecs
+        return fileSpecs to contexts
+    }
+
+    /**
+     * Detect response types that are shared across multiple operations and add them to sharedTypes.
+     */
+    private fun detectSharedResponseTypes(contexts: List<GraphQLClientGeneratorContext>) {
+        val responseTypeUsage = mutableMapOf<ClassName, MutableList<GraphQLClientGeneratorContext>>()
+        // Count usage of each response type across contexts
+        for (context in contexts) {
+            for (className in context.typeSpecs.keys) {
+                responseTypeUsage.computeIfAbsent(className) { mutableListOf() }.add(context)
+            }
+        }
+
+        // Add types used in multiple operations to shared response types
+        for ((className, usageContexts) in responseTypeUsage) {
+            if (usageContexts.size > 1) {
+                // This type is shared across multiple operations
+                val typeSpec = usageContexts.first().typeSpecs[className]
+                if (typeSpec != null) {
+                    usageContexts.forEach { context ->
+                        context.responseClassToTypeSpecs[className] = typeSpec
+                    }
+                }
+            }
+        }
     }
 
     private fun findRootType(operationDefinition: OperationDefinition): ObjectTypeDefinition {
