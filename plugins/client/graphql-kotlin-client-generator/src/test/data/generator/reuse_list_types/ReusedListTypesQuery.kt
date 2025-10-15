@@ -2,11 +2,11 @@ package com.expediagroup.graphql.generated
 
 import com.expediagroup.graphql.client.Generated
 import com.expediagroup.graphql.client.types.GraphQLClientRequest
-import com.expediagroup.graphql.generated.reusedlisttypesquery.BasicObject
-import com.expediagroup.graphql.generated.reusedlisttypesquery.BasicObject2
-import com.expediagroup.graphql.generated.reusedlisttypesquery.ComplexObject
-import com.expediagroup.graphql.generated.reusedlisttypesquery.ComplexObject2
-import com.expediagroup.graphql.generated.reusedlisttypesquery.ComplexObject3
+import com.expediagroup.graphql.generated.types.BasicObject
+import com.expediagroup.graphql.generated.types.BasicObject2
+import com.expediagroup.graphql.generated.types.ComplexObject
+import com.expediagroup.graphql.generated.types.ComplexObject2
+import com.expediagroup.graphql.generated.types.ComplexObject3
 import com.fasterxml.jackson.`annotation`.JsonProperty
 import kotlin.String
 import kotlin.collections.List

@@ -193,7 +193,7 @@ private fun updateImplementationTypeSpecWithSuperInformation(
     val implementationTypeSpec = context.typeSpecs[implementationClassName]!!
 
     val builder = implementationTypeSpec.toBuilder()
-    val superClassName = ClassName("${context.packageName}.${context.operationName.lowercase()}", interfaceName)
+    val superClassName = ClassName("${context.packageName}.types", interfaceName)
     if (context.serializer == GraphQLSerializer.KOTLINX) {
         builder.addAnnotation(
             AnnotationSpec.builder(SerialName::class)
@@ -230,8 +230,8 @@ private fun updateImplementationTypeSpecWithSuperInformation(
 
 private fun generateFallbackImplementation(context: GraphQLClientGeneratorContext, interfaceName: String, commonProperties: List<PropertySpec>): ClassName {
     val fallbackTypeName = "Default${interfaceName}Implementation"
-    val superClassName = ClassName("${context.packageName}.${context.operationName.lowercase()}", interfaceName)
-    val fallbackClassName = ClassName("${context.packageName}.${context.operationName.lowercase()}", fallbackTypeName)
+    val superClassName = ClassName("${context.packageName}.types", interfaceName)
+    val fallbackClassName = ClassName("${context.packageName}.types", fallbackTypeName)
     val fallbackType = TypeSpec.classBuilder(fallbackTypeName)
         .addAnnotation(Generated::class)
         .addKdoc("Fallback $interfaceName implementation that will be used when unknown/unhandled type is encountered.")

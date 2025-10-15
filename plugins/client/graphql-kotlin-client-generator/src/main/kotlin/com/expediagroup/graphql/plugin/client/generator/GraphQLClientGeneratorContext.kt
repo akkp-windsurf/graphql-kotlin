@@ -36,22 +36,20 @@ data class GraphQLClientGeneratorContext(
     val allowDeprecated: Boolean = false,
     val customScalarMap: Map<String, GraphQLScalar> = mapOf(),
     val serializer: GraphQLSerializer = GraphQLSerializer.JACKSON,
-    val useOptionalInputWrapper: Boolean = false
+    val useOptionalInputWrapper: Boolean = false,
+    internal val classNameCache: MutableMap<String, MutableList<ClassName>>,
+    internal val typeToSelectionSetMap: MutableMap<String, Set<String>>,
+    internal val enumClassToTypeSpecs: MutableMap<ClassName, TypeSpec>
 ) {
     // per operation caches
     val typeSpecs: MutableMap<ClassName, TypeSpec> = mutableMapOf()
     val polymorphicTypes: MutableMap<ClassName, MutableList<ClassName>> = mutableMapOf()
 
     // shared type caches
-    val enumClassToTypeSpecs: MutableMap<ClassName, TypeSpec> = mutableMapOf()
     val inputClassToTypeSpecs: MutableMap<ClassName, TypeSpec> = mutableMapOf()
     val scalarClassToConverterTypeSpecs: MutableMap<ClassName, ScalarConverterInfo> = mutableMapOf()
     val typeAliases: MutableMap<String, TypeAliasSpec> = mutableMapOf()
     internal fun isTypeAlias(typeName: String) = typeAliases.containsKey(typeName)
-
-    // class name and type selection caches
-    val classNameCache: MutableMap<String, MutableList<ClassName>> = mutableMapOf()
-    val typeToSelectionSetMap: MutableMap<String, Set<String>> = mutableMapOf()
 
     private val customScalarClassNames: Set<ClassName> = customScalarMap.values.map { it.className }.toSet()
     internal fun isCustomScalar(typeName: TypeName): Boolean = customScalarClassNames.contains(typeName)

@@ -2,8 +2,8 @@ package com.expediagroup.graphql.generated
 
 import com.expediagroup.graphql.client.Generated
 import com.expediagroup.graphql.client.types.GraphQLClientRequest
-import com.expediagroup.graphql.generated.differentselectionsetquery.BasicInterface
-import com.expediagroup.graphql.generated.differentselectionsetquery.BasicInterface2
+import com.expediagroup.graphql.generated.types.BasicInterface
+import com.expediagroup.graphql.generated.types.BasicInterface2
 import com.fasterxml.jackson.`annotation`.JsonProperty
 import kotlin.String
 import kotlin.reflect.KClass

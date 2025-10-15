@@ -2,8 +2,8 @@ package com.expediagroup.graphql.generated
 
 import com.expediagroup.graphql.client.Generated
 import com.expediagroup.graphql.client.types.GraphQLClientRequest
-import com.expediagroup.graphql.generated.unionsameselections.ProductRatingSupportingMessage
-import com.expediagroup.graphql.generated.unionsameselections.ProductSupportingMessage
+import com.expediagroup.graphql.generated.types.ProductRatingSupportingMessage
+import com.expediagroup.graphql.generated.types.ProductSupportingMessage
 import com.fasterxml.jackson.`annotation`.JsonProperty
 import kotlin.String
 import kotlin.collections.List

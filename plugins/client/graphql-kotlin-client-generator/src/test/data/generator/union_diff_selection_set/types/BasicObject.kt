@@ -1,0 +1,14 @@
+package com.expediagroup.graphql.generated.types
+
+import com.expediagroup.graphql.client.Generated
+import com.fasterxml.jackson.`annotation`.JsonProperty
+import kotlin.Int
+
+/**
+ * Some basic description
+ */
+@Generated
+public data class BasicObject(
+  @get:JsonProperty(value = "id")
+  public val id: Int,
+) : BasicUnion
