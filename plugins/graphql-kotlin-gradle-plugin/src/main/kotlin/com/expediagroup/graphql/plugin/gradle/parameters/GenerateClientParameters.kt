@@ -46,4 +46,6 @@ interface GenerateClientParameters : WorkParameters {
     val useOptionalInputWrapper: Property<Boolean>
     /** Set parser options for processing GraphQL queries and schema definition language documents */
     val parserOptions: Property<GraphQLParserOptions>
+    /** Opt-in flag to enable cross-operation shared response types. */
+    val useSharedResponseTypes: Property<Boolean>
 }

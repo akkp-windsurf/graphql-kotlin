@@ -1,3 +1,30 @@
+package com.expediagroup.graphql.plugin.client.generator
+
+import org.junit.jupiter.api.Test
+
+class GenerateGraphQLClientIT_SharedResponses {
+    @Test
+    fun `generate client with shared response types across operations`() {
+        val files = generateClient(
+            packageName = "com.expediagroup.generated",
+            allowDeprecated = false,
+            customScalarsMap = emptyList(),
+            serializer = GraphQLSerializer.JACKSON,
+            schemaPath = "schema.graphql",
+            queries = listOf(
+                java.io.File("src/test/data/generator/shared_responses/Operation1.graphql"),
+                java.io.File("src/test/data/generator/shared_responses/Operation2.graphql")
+            ),
+            useOptionalInputWrapper = false,
+            useSharedResponseTypes = true
+        )
+        val output = files.map { it.packageName to it.name }.toSet()
+        require(output.contains("com.expediagroup.generated.responses" to "ComplexObject"))
+        require(output.contains("com.expediagroup.generated.responses" to "ComplexObject2"))
+        require(output.contains("com.expediagroup.generated.responses" to "ComplexObject3"))
+    }
+}
+
 /*
  * Copyright 2021 Expedia, Inc
  *
