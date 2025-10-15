@@ -54,6 +54,12 @@ class GraphQLClientGenerator(
     private val typeAliases: MutableMap<String, TypeAliasSpec> = mutableMapOf()
     private val sharedTypes: MutableMap<ClassName, List<TypeSpec>> = mutableMapOf()
     private var generateOptionalSerializer: Boolean = false
+
+    // Shared caches across all operations for response type deduplication
+    private val classNameCache: MutableMap<String, MutableList<ClassName>> = mutableMapOf()
+    private val typeToSelectionSetMap: MutableMap<String, Set<String>> = mutableMapOf()
+    private val enumClassToTypeSpecs: MutableMap<ClassName, TypeSpec> = mutableMapOf()
+
     private val graphQLSchema: TypeDefinitionRegistry
     private val parserOptions: ParserOptions = ParserOptions.newParserOptions().also { this.config.parserOptions(it) }.build()
 
@@ -66,11 +72,12 @@ class GraphQLClientGenerator(
      */
     fun generate(queries: List<File>): List<FileSpec> {
         val result = mutableListOf<FileSpec>()
-        for (query in queries) {
+        // Sort queries by file name to ensure consistent processing order
+        val sortedQueries = queries.sortedBy { it.name }
+        for (query in sortedQueries) {
             result.addAll(generate(query))
         }
 
-        // common shared types
         for ((className, typeSpecs) in sharedTypes) {
             val fileSpec = FileSpec.builder(className.packageName, className.simpleName)
             for (type in typeSpecs) {
@@ -119,7 +126,10 @@ class GraphQLClientGenerator(
                 allowDeprecated = config.allowDeprecated,
                 customScalarMap = config.customScalarMap,
                 serializer = config.serializer,
-                useOptionalInputWrapper = config.useOptionalInputWrapper
+                useOptionalInputWrapper = config.useOptionalInputWrapper,
+                classNameCache = classNameCache,
+                typeToSelectionSetMap = typeToSelectionSetMap,
+                enumClassToTypeSpecs = enumClassToTypeSpecs
             )
             val queryConstName = capitalizedOperationName.toUpperUnderscore()
             val queryConstProp = PropertySpec.builder(queryConstName, STRING)
@@ -184,37 +194,52 @@ class GraphQLClientGenerator(
             )
             operationTypeSpec.addType(graphQLResponseTypeSpec)
 
-            val polymorphicTypes = mutableListOf<ClassName>()
-            // prevent colocating duplicated type specs in the same packageName
-            val typeSpecByPackageName = mutableSetOf<String>()
+            val polymorphicTypes = mutableSetOf<ClassName>()
+
+            // Collect polymorphic types
             for ((superClassName, implementations) in context.polymorphicTypes) {
                 polymorphicTypes.add(superClassName)
-                val polymorphicTypeSpec = FileSpec.builder(superClassName.packageName, superClassName.simpleName)
-                for (implementation in implementations) {
-                    polymorphicTypes.add(implementation)
-                    context.typeSpecs[implementation]?.let { typeSpec ->
-                        if (
-                            typeSpec.name != null &&
-                            !typeSpecByPackageName.contains("${superClassName.packageName}.${typeSpec.name}")
-                        ) {
-                            polymorphicTypeSpec.addType(typeSpec)
-                            typeSpecByPackageName.add("${superClassName.packageName}.${typeSpec.name}")
+
+                if (config.serializer == GraphQLSerializer.KOTLINX) {
+                    // For Kotlinx: Collect sealed class with all implementations
+                    val allTypeSpecs = mutableListOf<TypeSpec>()
+                    context.typeSpecs[superClassName]?.let { allTypeSpecs.add(it) }
+                    for (implementation in implementations) {
+                        if (implementation != superClassName) {
+                            polymorphicTypes.add(implementation)
+                            context.typeSpecs[implementation]?.let { allTypeSpecs.add(it) }
+                        }
+                    }
+                    if (allTypeSpecs.isNotEmpty()) {
+                        sharedTypes[superClassName] = allTypeSpecs
+                    }
+                } else {
+                    // For Jackson: Collect interface and implementations separately
+                    context.typeSpecs[superClassName]?.let { typeSpec ->
+                        sharedTypes[superClassName] = listOf(typeSpec)
+                    }
+
+                    for (implementation in implementations) {
+                        if (implementation != superClassName) {
+                            polymorphicTypes.add(implementation)
+                            context.typeSpecs[implementation]?.let { typeSpec ->
+                                sharedTypes[implementation] = listOf(typeSpec)
+                            }
                         }
                     }
                 }
-                fileSpecs.add(polymorphicTypeSpec.build())
             }
-            context.typeSpecs.minus(polymorphicTypes).forEach { (className, typeSpec) ->
-                val outputTypeFileSpec = FileSpec.builder(className.packageName, className.simpleName)
-                    .addType(typeSpec)
-                    .build()
-                fileSpecs.add(outputTypeFileSpec)
+
+            // Collect non-polymorphic response types in .types package
+            context.typeSpecs.forEach { (className, typeSpec) ->
+                if (className.packageName.endsWith(".types") && !polymorphicTypes.contains(className)) {
+                    sharedTypes[className] = listOf(typeSpec)
+                }
             }
             operationFileSpec.addType(operationTypeSpec.build())
             fileSpecs.add(operationFileSpec.build())
 
             // shared types
-            sharedTypes.putAll(context.enumClassToTypeSpecs.mapValues { listOf(it.value) })
             sharedTypes.putAll(context.inputClassToTypeSpecs.mapValues { listOf(it.value) })
             context.scalarClassToConverterTypeSpecs
                 .values
@@ -237,6 +262,10 @@ class GraphQLClientGenerator(
                 sharedTypes.putAll(context.optionalSerializers.mapValues { listOf(it.value) })
             }
         }
+
+        // Add shared enums after processing all operations
+        sharedTypes.putAll(enumClassToTypeSpecs.mapValues { listOf(it.value) })
+
         return fileSpecs
     }
 

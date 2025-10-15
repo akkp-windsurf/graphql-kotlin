@@ -2,7 +2,7 @@ package com.expediagroup.graphql.generated
 
 import com.expediagroup.graphql.client.Generated
 import com.expediagroup.graphql.client.types.GraphQLClientRequest
-import com.expediagroup.graphql.generated.unionquerywithinlinefragments.BasicUnion
+import com.expediagroup.graphql.generated.types.BasicUnion
 import kotlin.String
 import kotlin.reflect.KClass
 import kotlinx.serialization.Required

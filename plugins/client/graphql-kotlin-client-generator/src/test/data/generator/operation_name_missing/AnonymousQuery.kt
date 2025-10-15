@@ -2,7 +2,7 @@ package com.expediagroup.graphql.generated
 
 import com.expediagroup.graphql.client.Generated
 import com.expediagroup.graphql.client.types.GraphQLClientRequest
-import com.expediagroup.graphql.generated.anonymousquery.ScalarWrapper
+import com.expediagroup.graphql.generated.types.ScalarWrapper
 import com.fasterxml.jackson.`annotation`.JsonProperty
 import kotlin.String
 import kotlin.reflect.KClass
