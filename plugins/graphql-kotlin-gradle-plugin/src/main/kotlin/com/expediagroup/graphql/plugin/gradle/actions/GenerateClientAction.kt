@@ -38,6 +38,7 @@ abstract class GenerateClientAction : WorkAction<GenerateClientParameters> {
         val queryFiles = parameters.queryFiles.get()
         val targetDirectory = parameters.targetDirectory.get()
         val useOptionalInputWrapper = parameters.useOptionalInputWrapper.get()
+        val useSharedResponseTypes = parameters.useSharedResponseTypes.get()
         val parserOptions = parameters.parserOptions.get()
 
         generateClient(
@@ -48,6 +49,7 @@ abstract class GenerateClientAction : WorkAction<GenerateClientParameters> {
             schemaPath,
             queryFiles,
             useOptionalInputWrapper,
+            useSharedResponseTypes = useSharedResponseTypes,
             parserOptions = {
                 parserOptions.maxTokens?.let { maxTokens(it) }
                 parserOptions.maxWhitespaceTokens?.let { maxWhitespaceTokens(it) }

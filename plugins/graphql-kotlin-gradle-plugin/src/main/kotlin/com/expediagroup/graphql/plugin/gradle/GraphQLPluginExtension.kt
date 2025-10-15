@@ -90,7 +90,8 @@ open class GraphQLPluginClientExtension {
     var serializer: GraphQLSerializer = GraphQLSerializer.JACKSON
     /** Opt-in flag to wrap nullable arguments in OptionalInput that supports both null and undefined. */
     var useOptionalInputWrapper: Boolean = false
-
+    /** Opt-in flag to enable cross-operation shared response types. */
+    var useSharedResponseTypes: Boolean = false
     /** Connect and read timeout configuration for executing introspection query/download schema */
     internal val timeoutConfig: TimeoutConfiguration = TimeoutConfiguration()
 

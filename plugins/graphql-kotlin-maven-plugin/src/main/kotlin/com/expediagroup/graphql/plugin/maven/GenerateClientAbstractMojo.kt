@@ -118,6 +118,12 @@ abstract class GenerateClientAbstractMojo : AbstractMojo() {
     private var useOptionalInputWrapper: Boolean = false
 
     /**
+     * Opt-in flag to enable cross-operation shared response types.
+     */
+    @Parameter(defaultValue = "\${graphql.useSharedResponseTypes}", name = "useSharedResponseTypes")
+    private var useSharedResponseTypes: Boolean = false
+
+    /**
      * Target directory where to store generated files.
      */
     abstract var outputDirectory: File
@@ -135,17 +141,27 @@ abstract class GenerateClientAbstractMojo : AbstractMojo() {
 
         logConfiguration(schemaPath, targetQueryFiles)
         val customGraphQLScalars = customScalars.map { GraphQLScalar(it.scalar, it.type, it.converter) }
-        generateClient(packageName, allowDeprecatedFields, customGraphQLScalars, serializer, schemaPath, targetQueryFiles, useOptionalInputWrapper, parserOptions = {
-            parserOptions?.apply {
-                maxTokens?.let { maxTokens(it) }
-                maxWhitespaceTokens?.let { maxWhitespaceTokens(it) }
-                maxCharacters?.let { maxCharacters(it) }
-                maxRuleDepth?.let { maxRuleDepth(it) }
-                captureIgnoredChars?.let { captureIgnoredChars(it) }
-                captureLineComments?.let { captureLineComments(it) }
-                captureSourceLocation?.let { captureSourceLocation(it) }
+        generateClient(
+            packageName = packageName,
+            allowDeprecated = allowDeprecatedFields,
+            customScalarsMap = customGraphQLScalars,
+            serializer = serializer,
+            schemaPath = schemaPath,
+            queries = targetQueryFiles,
+            useOptionalInputWrapper = useOptionalInputWrapper,
+            useSharedResponseTypes = useSharedResponseTypes,
+            parserOptions = {
+                parserOptions?.apply {
+                    maxTokens?.let { maxTokens(it) }
+                    maxWhitespaceTokens?.let { maxWhitespaceTokens(it) }
+                    maxCharacters?.let { maxCharacters(it) }
+                    maxRuleDepth?.let { maxRuleDepth(it) }
+                    captureIgnoredChars?.let { captureIgnoredChars(it) }
+                    captureLineComments?.let { captureLineComments(it) }
+                    captureSourceLocation?.let { captureSourceLocation(it) }
+                }
             }
-        }).forEach {
+        ).forEach {
             it.writeTo(outputDirectory)
         }
 

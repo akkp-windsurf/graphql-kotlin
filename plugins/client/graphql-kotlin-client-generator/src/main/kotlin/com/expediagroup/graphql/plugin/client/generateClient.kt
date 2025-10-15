@@ -35,6 +35,7 @@ fun generateClient(
     schemaPath: String,
     queries: List<File>,
     useOptionalInputWrapper: Boolean = false,
+    useSharedResponseTypes: Boolean = false,
     parserOptions: ParserOptions.Builder.() -> Unit = {}
 ): List<FileSpec> {
     val customScalars = customScalarsMap.associateBy { it.scalar }
@@ -44,7 +45,8 @@ fun generateClient(
         customScalarMap = customScalars,
         serializer = serializer,
         useOptionalInputWrapper = useOptionalInputWrapper,
-        parserOptions = parserOptions
+        parserOptions = parserOptions,
+        useSharedResponseTypes = useSharedResponseTypes
     )
     val generator = GraphQLClientGenerator(schemaPath, config)
     return generator.generate(queries)

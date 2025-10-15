@@ -53,6 +53,10 @@ class GraphQLClientGenerator(
     private val documentParser: Parser = Parser()
     private val typeAliases: MutableMap<String, TypeAliasSpec> = mutableMapOf()
     private val sharedTypes: MutableMap<ClassName, List<TypeSpec>> = mutableMapOf()
+    private val sharedResponseTypeSpecs: MutableMap<ClassName, TypeSpec> = mutableMapOf()
+    private val globalClassNameCache: MutableMap<String, MutableList<ClassName>> = mutableMapOf()
+    private val globalTypeToSelectionSetMap: MutableMap<String, Set<String>> = mutableMapOf()
+
     private var generateOptionalSerializer: Boolean = false
     private val graphQLSchema: TypeDefinitionRegistry
     private val parserOptions: ParserOptions = ParserOptions.newParserOptions().also { this.config.parserOptions(it) }.build()
@@ -119,7 +123,11 @@ class GraphQLClientGenerator(
                 allowDeprecated = config.allowDeprecated,
                 customScalarMap = config.customScalarMap,
                 serializer = config.serializer,
-                useOptionalInputWrapper = config.useOptionalInputWrapper
+                useOptionalInputWrapper = config.useOptionalInputWrapper,
+                sharedClassNameCache = if (config.useSharedResponseTypes) globalClassNameCache else null,
+                sharedTypeToSelectionSetMap = if (config.useSharedResponseTypes) globalTypeToSelectionSetMap else null,
+                useSharedResponseTypes = config.useSharedResponseTypes,
+                sharedResponseTypeSpecs = if (config.useSharedResponseTypes) sharedResponseTypeSpecs else null
             )
             val queryConstName = capitalizedOperationName.toUpperUnderscore()
             val queryConstProp = PropertySpec.builder(queryConstName, STRING)
@@ -205,10 +213,12 @@ class GraphQLClientGenerator(
                 fileSpecs.add(polymorphicTypeSpec.build())
             }
             context.typeSpecs.minus(polymorphicTypes).forEach { (className, typeSpec) ->
-                val outputTypeFileSpec = FileSpec.builder(className.packageName, className.simpleName)
-                    .addType(typeSpec)
-                    .build()
-                fileSpecs.add(outputTypeFileSpec)
+                if (!(config.useSharedResponseTypes && context.isSharedResponseType(className))) {
+                    val outputTypeFileSpec = FileSpec.builder(className.packageName, className.simpleName)
+                        .addType(typeSpec)
+                        .build()
+                    fileSpecs.add(outputTypeFileSpec)
+                }
             }
             operationFileSpec.addType(operationTypeSpec.build())
             fileSpecs.add(operationFileSpec.build())
@@ -216,6 +226,10 @@ class GraphQLClientGenerator(
             // shared types
             sharedTypes.putAll(context.enumClassToTypeSpecs.mapValues { listOf(it.value) })
             sharedTypes.putAll(context.inputClassToTypeSpecs.mapValues { listOf(it.value) })
+        if (config.useSharedResponseTypes) {
+            sharedTypes.putAll(sharedResponseTypeSpecs.mapValues { listOf(it.value) })
+        }
+
             context.scalarClassToConverterTypeSpecs
                 .values
                 .forEach {

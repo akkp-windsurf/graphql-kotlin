@@ -34,7 +34,9 @@ data class GraphQLClientGeneratorConfig(
     /** Explicit opt-in flag to enable support for optional inputs. */
     val useOptionalInputWrapper: Boolean = false,
     /** Set parser options for processing GraphQL queries and schema definition language documents */
-    val parserOptions: ParserOptions.Builder.() -> Unit = {}
+    val parserOptions: ParserOptions.Builder.() -> Unit = {},
+    /** Opt-in flag to enable cross-operation shared response types. */
+    val useSharedResponseTypes: Boolean = false
 )
 
 /**

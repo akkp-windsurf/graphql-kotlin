@@ -36,7 +36,11 @@ data class GraphQLClientGeneratorContext(
     val allowDeprecated: Boolean = false,
     val customScalarMap: Map<String, GraphQLScalar> = mapOf(),
     val serializer: GraphQLSerializer = GraphQLSerializer.JACKSON,
-    val useOptionalInputWrapper: Boolean = false
+    val useOptionalInputWrapper: Boolean = false,
+    val sharedClassNameCache: MutableMap<String, MutableList<ClassName>>? = null,
+    val sharedTypeToSelectionSetMap: MutableMap<String, Set<String>>? = null,
+    val useSharedResponseTypes: Boolean = false,
+    val sharedResponseTypeSpecs: MutableMap<ClassName, TypeSpec>? = null
 ) {
     // per operation caches
     val typeSpecs: MutableMap<ClassName, TypeSpec> = mutableMapOf()
@@ -50,13 +54,14 @@ data class GraphQLClientGeneratorContext(
     internal fun isTypeAlias(typeName: String) = typeAliases.containsKey(typeName)
 
     // class name and type selection caches
-    val classNameCache: MutableMap<String, MutableList<ClassName>> = mutableMapOf()
-    val typeToSelectionSetMap: MutableMap<String, Set<String>> = mutableMapOf()
+    val classNameCache: MutableMap<String, MutableList<ClassName>> = sharedClassNameCache ?: mutableMapOf()
+    val typeToSelectionSetMap: MutableMap<String, Set<String>> = sharedTypeToSelectionSetMap ?: mutableMapOf()
 
     private val customScalarClassNames: Set<ClassName> = customScalarMap.values.map { it.className }.toSet()
     internal fun isCustomScalar(typeName: TypeName): Boolean = customScalarClassNames.contains(typeName)
     var requireOptionalSerializer = false
     val optionalSerializers: MutableMap<ClassName, TypeSpec> = mutableMapOf()
+    fun isSharedResponseType(className: ClassName): Boolean = useSharedResponseTypes && sharedResponseTypeSpecs?.containsKey(className) == true
 }
 
 sealed class ScalarConverterInfo {

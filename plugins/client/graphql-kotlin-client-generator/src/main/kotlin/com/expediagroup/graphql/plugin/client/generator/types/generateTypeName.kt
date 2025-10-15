@@ -112,7 +112,12 @@ internal fun generateCustomClassName(context: GraphQLClientGeneratorContext, gra
             when (graphQLTypeDefinition) {
                 is ObjectTypeDefinition -> {
                     className = generateClassName(context, graphQLTypeDefinition, selectionSet)
-                    context.typeSpecs[className] = generateGraphQLObjectTypeSpec(context, graphQLTypeDefinition, selectionSet)
+                    val typeSpec = generateGraphQLObjectTypeSpec(context, graphQLTypeDefinition, selectionSet)
+                    if (context.useSharedResponseTypes) {
+                        context.sharedResponseTypeSpecs?.set(className, typeSpec)
+                    } else {
+                        context.typeSpecs[className] = typeSpec
+                    }
                 }
                 is InputObjectTypeDefinition -> {
                     className = generateClassName(context, graphQLTypeDefinition, selectionSet, packageName = "${context.packageName}.inputs")
@@ -174,7 +179,11 @@ internal fun generateCustomClassName(context: GraphQLClientGeneratorContext, gra
             // should never happen as we can only generate different object, interface or union type
             else -> throw UnknownGraphQLTypeException(graphQLType)
         }
-        context.typeSpecs[className] = typeSpec
+        if (graphQLTypeDefinition is ObjectTypeDefinition && context.useSharedResponseTypes) {
+            context.sharedResponseTypeSpecs?.set(className, typeSpec)
+        } else {
+            context.typeSpecs[className] = typeSpec
+        }
         className
     }
 }
@@ -187,7 +196,11 @@ internal fun generateClassName(
     graphQLType: NamedNode<*>,
     selectionSet: SelectionSet? = null,
     nameOverride: String? = null,
-    packageName: String = "${context.packageName}.${context.operationName.lowercase()}"
+    packageName: String = if (graphQLType is ObjectTypeDefinition && context.useSharedResponseTypes) {
+        "${context.packageName}.responses"
+    } else {
+        "${context.packageName}.${context.operationName.lowercase()}"
+    }
 ): ClassName {
     val typeName = nameOverride ?: graphQLType.name
     val className = ClassName(packageName, typeName)

@@ -124,6 +124,11 @@ abstract class AbstractGenerateClientTask : DefaultTask() {
 
     @Input
     @Optional
+    @Option(option = "useSharedResponseTypes", description = "Opt-in flag to enable cross-operation shared response types.")
+    val useSharedResponseTypes: Property<Boolean> = project.objects.property(Boolean::class.java)
+
+    @Input
+    @Optional
     val parserOptions: Property<GraphQLParserOptions> = project.objects.property(GraphQLParserOptions::class.java)
 
     @OutputDirectory
@@ -140,6 +145,7 @@ abstract class AbstractGenerateClientTask : DefaultTask() {
         customScalars.convention(emptyList())
         serializer.convention(GraphQLSerializer.JACKSON)
         useOptionalInputWrapper.convention(false)
+        useSharedResponseTypes.convention(false)
         parserOptions.convention(GraphQLParserOptions())
     }
 
@@ -187,6 +193,7 @@ abstract class AbstractGenerateClientTask : DefaultTask() {
             parameters.queryFiles.set(targetQueryFiles)
             parameters.targetDirectory.set(targetDirectory)
             parameters.useOptionalInputWrapper.set(useOptionalInputWrapper)
+            parameters.useSharedResponseTypes.set(useSharedResponseTypes)
             parameters.parserOptions.set(parserOptions)
         }
         workQueue.await()
