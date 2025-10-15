@@ -1,5 +1,8 @@
 package com.expediagroup.generated
 
+import com.expediagroup.generated.responses.ComplexObject
+import com.expediagroup.generated.responses.ComplexObject2
+import com.expediagroup.generated.responses.ComplexObject3
 import com.expediagroup.graphql.client.Generated
 import com.expediagroup.graphql.client.types.GraphQLClientRequest
 import kotlin.String
@@ -14,11 +17,11 @@ class Operation1 : GraphQLClientRequest<Operation1.Result> {
   override fun responseType(): KClass<Result> = Result::class
 
   class Result(
-    val first: com.expediagroup.generated.responses.ComplexObject,
-    val second: com.expediagroup.generated.responses.ComplexObject2,
-    val third: com.expediagroup.generated.responses.ComplexObject3,
-    val fourth: com.expediagroup.generated.responses.ComplexObject,
-    val fifth: com.expediagroup.generated.responses.ComplexObject2,
+    val first: ComplexObject,
+    val second: ComplexObject2,
+    val third: ComplexObject3,
+    val fourth: ComplexObject,
+    val fifth: ComplexObject2,
   )
 }
 
