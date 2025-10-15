@@ -32,7 +32,7 @@ internal val defaultConfig = GraphQLClientGeneratorConfig(packageName = "com.exp
 
 internal fun locateTestCaseArguments(directory: String) = File(directory)
     .listFiles()
-    ?.filter { it.isDirectory }
+    ?.filter { it.isDirectory && it.name != "shared_responses" }
     ?.map {
         Arguments.of(it)
     } ?: emptyList()

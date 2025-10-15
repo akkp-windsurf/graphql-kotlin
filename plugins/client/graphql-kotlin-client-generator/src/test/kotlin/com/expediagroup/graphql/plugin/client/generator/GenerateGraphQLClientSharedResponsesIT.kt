@@ -1,5 +1,7 @@
 package com.expediagroup.graphql.plugin.client.generator
 
+import com.expediagroup.graphql.plugin.client.generator.GraphQLSerializer
+import com.expediagroup.graphql.plugin.client.generateClient
 import org.junit.jupiter.api.Test
 import java.io.File
 
@@ -11,7 +13,7 @@ class GenerateGraphQLClientSharedResponsesIT {
             allowDeprecated = false,
             customScalarsMap = emptyList(),
             serializer = GraphQLSerializer.JACKSON,
-            schemaPath = "schema.graphql",
+            schemaPath = "src/test/data/generator/shared_responses/schema.graphql",
             queries = listOf(
                 File("src/test/data/generator/shared_responses/Operation1.graphql"),
                 File("src/test/data/generator/shared_responses/Operation2.graphql")
@@ -19,7 +21,7 @@ class GenerateGraphQLClientSharedResponsesIT {
             useOptionalInputWrapper = false,
             useSharedResponseTypes = true
         )
-        val namesByPackage = files.groupBy({ it.packageName }, { it.name }).mapValues { it.value.toSet() }
+        val namesByPackage = files.groupBy({ it.packageName }, { it.name }).mapValues { entry -> entry.value.toSet() }
         check(namesByPackage["com.expediagroup.generated.responses"]?.containsAll(setOf("ComplexObject", "ComplexObject2", "ComplexObject3")) == true)
     }
 }

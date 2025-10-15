@@ -1,0 +1,18 @@
+schema {
+  query: Query
+}
+
+type Query {
+  complexObjectQuery: ComplexObject
+}
+
+type ComplexObject {
+  id: ID!
+  name: String!
+  details: DetailsObject
+}
+
+type DetailsObject {
+  id: ID!
+  value: String
+}
